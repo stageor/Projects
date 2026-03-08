@@ -1,2 +1,66 @@
-<p>hello</p>
-<p>Feature 2</p>
+# pip install pandas openpyxl
+import pandas as pd
+from datetime import datetime
+from openpyxl import load_workbook
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+
+# ─── Option A: Create brand new Excel file ───
+data = {
+    'Date': [datetime(2025,1,15), datetime(2025,2,3), datetime(2025,3,12)],
+    'Product': ['Wireless Mouse', 'Mechanical Keyboard', 'USB-C Hub'],
+    'Quantity': [42, 18, 7],
+    'Unit Price': [890, 2450, 1799],
+    'Total': [0] * 3   # will be calculated
+}
+
+df = pd.DataFrame(data)
+df['Total'] = df['Quantity'] * df['Unit Price']
+
+# Nice formatting helper
+def format_sales_report(filepath):
+    wb = load_workbook(filepath)
+    ws = wb.active
+
+    # Header row formatting
+    header_fill = PatternFill(start_color="D9EAD3", end_color="D9EAD3", fill_type="solid")
+    header_font = Font(bold=True, size=12)
+    thin_border = Border(left=Side(style='thin'), right=Side(style='thin'),
+                        top=Side(style='thin'), bottom=Side(style='thin'))
+
+    for cell in ws[1]:
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+        cell.border = thin_border
+
+    # Money formatting and alignment
+    for row in ws.iter_rows(min_row=2, max_col=5):
+        row[3].number_format = '#,##0'     # quantity
+        row[4].number_format = '₹#,##0.00'  # price
+        row[5].number_format = '₹#,##0.00'  # total
+
+        for cell in row:
+            cell.border = thin_border
+            if cell.column_letter in ['D','E','F']:
+                cell.alignment = Alignment(horizontal='right')
+
+    # Auto-adjust columns
+    for col in ws.columns:
+        max_length = 0
+        column = col[0].column_letter
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = (max_length + 3)
+        ws.column_dimensions[column].width = adjusted_width
+
+    wb.save(filepath)
+    print(f"Formatted report saved → {filepath}")
+
+# Save with formatting
+output_file = "Sales_Report_Mar_2025.xlsx"
+df.to_excel(output_file, index=False, sheet_name="Sales 2025")
+format_sales_report(output_file)
