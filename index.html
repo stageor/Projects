@@ -1,38 +1,206 @@
-function main(workbook: ExcelScript.Workbook) {
-  // Get active worksheet
-  let sheet = workbook.getActiveWorksheet();
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Excel-style Mini Automation</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      margin: 20px;
+      background: #f8f9fa;
+    }
+    h1 { color: #2c3e50; }
+    table {
+      border-collapse: collapse;
+      margin: 20px 0;
+      background: white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    }
+    td, th {
+      border: 1px solid #d0d7e0;
+      padding: 8px 12px;
+      min-width: 90px;
+    }
+    th {
+      background: #3498db;
+      color: white;
+      font-weight: 500;
+    }
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 4px;
+      border: none;
+      font: inherit;
+    }
+    input:focus {
+      outline: 2px solid #3498db;
+    }
+    .formula-cell {
+      background: #f1f8ff;
+      font-family: 'Courier New', monospace;
+      color: #27ae60;
+    }
+    #summary {
+      margin-top: 30px;
+      padding: 16px;
+      background: #ecf0f1;
+      border-radius: 6px;
+      max-width: 600px;
+    }
+    button {
+      padding: 8px 16px;
+      margin: 0 8px 12px 0;
+      background: #2ecc71;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover { background: #27ae60; }
+  </style>
+</head>
+<body>
+
+<h1>Simple Excel-like Automation (Browser)</h1>
+
+<p style="color:#7f8c8d">
+  Change values in yellow cells → formulas & summary auto-update
+</p>
+
+<table id="dataTable">
+  <thead>
+    <tr>
+      <th>Item</th>
+      <th>Quantity</th>
+      <th>Unit Price</th>
+      <th>Total</th>
+      <th>Discount %</th>
+      <th>Final Amount</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><input type="text" value="Wireless Mouse" class="desc"></td>
+      <td><input type="number" value="4"  class="qty"></td>
+      <td><input type="number" value="850" step="10" class="price"></td>
+      <td class="formula-cell total"></td>
+      <td><input type="number" value="5" step="1" min="0" max="60" class="disc"></td>
+      <td class="formula-cell final"></td>
+    </tr>
+    <tr>
+      <td><input type="text" value="USB-C Hub" class="desc"></td>
+      <td><input type="number" value="2"  class="qty"></td>
+      <td><input type="number" value="1450" step="50" class="price"></td>
+      <td class="formula-cell total"></td>
+      <td><input type="number" value="10" step="1" min="0" max="60" class="disc"></td>
+      <td class="formula-cell final"></td>
+    </tr>
+    <tr>
+      <td><input type="text" value="27″ Monitor" class="desc"></td>
+      <td><input type="number" value="1"  class="qty"></td>
+      <td><input type="number" value="16800" step="100" class="price"></td>
+      <td class="formula-cell total"></td>
+      <td><input type="number" value="8" step="1" min="0" max="60" class="disc"></td>
+      <td class="formula-cell final"></td>
+    </tr>
+  </tbody>
+</table>
+
+<div>
+  <button onclick="addRow()">+ Add Row</button>
+  <button onclick="exportToCSV()">↓ Export CSV</button>
+</div>
+
+<div id="summary">
+  <strong>Grand Total (after discount):</strong> <span id="grandTotal">—</span><br>
+  <strong>Number of items:</strong> <span id="itemCount">—</span>
+</div>
+
+<script>
+// ────────────────────────────────────────────────
+const table = document.getElementById('dataTable');
+
+function recalculate() {
+  let grand = 0;
+  let count = 0;
+
+  table.querySelectorAll('tbody tr').forEach(row => {
+    const qty   = Number(row.querySelector('.qty')?.value)   || 0;
+    const price = Number(row.querySelector('.price')?.value) || 0;
+    const disc  = Number(row.querySelector('.disc')?.value)  || 0;
+
+    const total = qty * price;
+    const final = total * (1 - disc/100);
+
+    row.querySelector('.total').textContent = total.toLocaleString('en-IN');
+    row.querySelector('.final').textContent = final.toLocaleString('en-IN', {minimumFractionDigits:2});
+
+    grand += final;
+    if (qty > 0) count++;
+  });
+
+  document.getElementById('grandTotal').textContent = 
+    "₹ " + grand.toLocaleString('en-IN', {minimumFractionDigits:2});
   
-  // Clear old content (optional)
-  sheet.getUsedRange()?.clear(ExcelScript.ClearApplyTo.contents);
-
-  // Write headers
-  let headers = sheet.getRange("A1:E1");
-  headers.setValues([["Date", "Product", "Qty", "Price", "Total"]]);
-  headers.getFormat().getFont().setBold(true);
-  headers.getFormat().getFill().setColor("#D9EAD3");  // light green
-
-  // Sample data rows
-  let data = [
-    ["2026-03-01", "Wireless Mouse", 15, 890, "=C2*D2"],
-    ["2026-03-02", "USB-C Hub", 8, 1799, "=C3*D3"],
-    ["2026-03-03", "Monitor Arm", 4, 3400, "=C4*D4"]
-  ];
-
-  // Write data starting row 2
-  sheet.getRange("A2:E4").setValues(data);
-
-  // Format numbers & currency (Indian Rupee example)
-  sheet.getRange("C2:C4").setNumberFormat("#,##0");
-  sheet.getRange("D2:E4").setNumberFormat("[$$-en-IN]#,##0.00");
-
-  // Auto-fit columns
-  sheet.getUsedRange().getFormat().autofitColumns();
-
-  // Add total row
-  let lastRow = sheet.getUsedRange().getRowCount() + 1;
-  sheet.getCell(lastRow - 1, 4).setValue("Grand Total");
-  sheet.getCell(lastRow - 1, 4).getFormat().getFont().setBold(true);
-  sheet.getRange(`E${lastRow}`).setFormula(`=SUM(E2:E${lastRow-1})`);
-
-  console.log("Report formatted successfully!");
+  document.getElementById('itemCount').textContent = count;
 }
+
+// Add new row
+function addRow() {
+  const row = table.tBodies[0].insertRow();
+  row.innerHTML = `
+    <td><input type="text" class="desc" placeholder="Item name"></td>
+    <td><input type="number" value="1" class="qty"></td>
+    <td><input type="number" value="0" step="10" class="price"></td>
+    <td class="formula-cell total"></td>
+    <td><input type="number" value="0" step="1" min="0" max="60" class="disc"></td>
+    <td class="formula-cell final"></td>
+  `;
+  attachListenersToRow(row);
+  recalculate();
+}
+
+// Attach change listeners to inputs in a row
+function attachListenersToRow(row) {
+  row.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', recalculate);
+  });
+}
+
+// Export to CSV
+function exportToCSV() {
+  const rows = [];
+  rows.push(['Item','Quantity','Unit Price','Total','Discount %','Final Amount']);
+
+  table.querySelectorAll('tbody tr').forEach(tr => {
+    const row = [];
+    row.push(tr.cells[0].querySelector('input').value);
+    row.push(tr.cells[1].querySelector('input').value);
+    row.push(tr.cells[2].querySelector('input').value);
+    row.push(tr.cells[3].textContent.replace(/,/g,''));
+    row.push(tr.cells[4].querySelector('input').value);
+    row.push(tr.cells[5].textContent.replace(/,/g,''));
+    rows.push(row);
+  });
+
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'invoice_data_' + new Date().toISOString().slice(0,10) + '.csv';
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+// Initialize
+document.querySelectorAll('tbody tr').forEach(attachListenersToRow);
+table.addEventListener('input', recalculate); // safety net
+recalculate();
+
+</script>
+</body>
+</html>
