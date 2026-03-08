@@ -3,175 +3,280 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Excel Automation Demo (Browser → Excel)</title>
+  <title>Excel Automation Demo (Browser + Excel JS API style)</title>
   <style>
     body {
-      font-family: system-ui, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 20px;
+      background: #f8f9fa;
+    }
+    h1 { color: #1a3c6d; }
+    .container {
       max-width: 900px;
-      margin: 30px auto;
-      padding: 0 20px;
-      line-height: 1.5;
+      margin: 0 auto;
     }
-    h1 { color: #1e40af; }
     button {
-      padding: 10px 20px;
-      margin: 8px 12px 8px 0;
-      font-size: 1rem;
-      cursor: pointer;
-      border: none;
-      border-radius: 6px;
-      background: #1d4ed8;
+      padding: 10px 18px;
+      margin: 6px 8px 6px 0;
+      background: #0066cc;
       color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 0.95rem;
     }
-    button:hover { background: #1e40af; }
-    button.danger  { background: #dc2626; }
-    button.danger:hover { background: #b91c1c; }
+    button:hover { background: #0055aa; }
+    button.danger { background: #c62828; }
+    button.danger:hover { background: #a51c1c; }
     textarea {
       width: 100%;
-      height: 180px;
-      font-family: 'Consolas', monospace;
-      padding: 12px;
-      border: 1px solid #d1d5db;
-      border-radius: 6px;
-      margin: 12px 0;
+      height: 140px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background: #fff;
     }
-    #status {
-      margin: 16px 0;
+    #result {
+      margin-top: 1.5rem;
       padding: 12px;
-      border-radius: 6px;
-      background: #f3f4f6;
-      min-height: 60px;
+      background: #e8f4fd;
+      border-left: 5px solid #0066cc;
+      border-radius: 4px;
+      min-height: 80px;
+    }
+    table.demo {
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 0.95em;
+    }
+    table.demo th, table.demo td {
+      border: 1px solid #ddd;
+      padding: 10px 14px;
+    }
+    table.demo th {
+      background: #e3f2fd;
+      color: #1a3c6d;
     }
   </style>
 </head>
 <body>
 
-<h1>Excel Automation from Browser (2024–2025 style)</h1>
+<div class="container">
 
-<p>Choose one of the methods below:</p>
+<h1>Excel-like Automation Demo</h1>
+
+<p>Try these typical Excel automation tasks using JavaScript in the browser:</p>
 
 <div>
-  <button onclick="downloadAsXLSX()">1. Download real .xlsx file (SheetJS)</button>
-  <button onclick="copyTableToClipboard()">2. Copy HTML table → paste in Excel</button>
-  <button onclick="copyTSV()">3. Copy tab-separated text (very reliable)</button>
-  <button class="danger" onclick="clearAll()">Clear</button>
+  <button onclick="generateSampleData()">1. Create Sample Sales Data</button>
+  <button onclick="calculateTotals()">2. Calculate Totals & VAT</button>
+  <button onclick="highlightAboveAverage()">3. Highlight Above Average</button>
+  <button onclick="exportToCSV()">4. Export Table → CSV</button>
+  <button class="danger" onclick="clearTable()">Clear Table</button>
 </div>
 
-<h3>Sample Data Table</h3>
-
-<table id="dataTable" border="1" style="border-collapse: collapse; margin: 20px 0;">
-  <thead style="background:#eff6ff;">
+<table id="dataTable" class="demo">
+  <thead>
     <tr>
-      <th>Month</th>
-      <th>Sales</th>
-      <th>Target</th>
-      <th>Achieved %</th>
-      <th>Region</th>
-      <th>Status</th>
+      <th>Product</th>
+      <th>Quantity</th>
+      <th>Unit Price</th>
+      <th>Total</th>
+      <th>VAT 18%</th>
+      <th>Final Amount</th>
     </tr>
   </thead>
-  <tbody>
-    <tr><td>Jan</td><td>184000</td><td>200000</td><td>92%</td><td>North</td><td>🟡 Almost</td></tr>
-    <tr><td>Feb</td><td>210500</td><td>195000</td><td>108%</td><td>North</td><td>🟢 Good</td></tr>
-    <tr><td>Mar</td><td>167800</td><td>220000</td><td>76%</td><td>South</td><td>🔴 Low</td></tr>
-    <tr><td>Apr</td><td>245000</td><td>230000</td><td>107%</td><td>West</td><td>🟢 Good</td></tr>
-    <tr><td>May</td><td>198000</td><td>210000</td><td>94%</td><td>East</td><td>🟡 Almost</td></tr>
-  </tbody>
+  <tbody id="tableBody"></tbody>
+  <tfoot>
+    <tr>
+      <td colspan="3" style="text-align:right; font-weight:bold;">Grand Total</td>
+      <td id="grandTotal" style="font-weight:bold;">—</td>
+      <td id="grandVAT" style="font-weight:bold;">—</td>
+      <td id="grandFinal" style="font-weight:bold;">—</td>
+    </tr>
+  </tfoot>
 </table>
 
-<h3>Generated Output (for method 1 & 3)</h3>
-<textarea id="output" placeholder="Generated content will appear here..."></textarea>
+<h3>Generated JavaScript code (like Office Script / Excel automation)</h3>
+<textarea id="codeOutput" readonly></textarea>
 
-<div id="status"></div>
+<div id="result"></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</div>
 
 <script>
 // ────────────────────────────────────────────────
-// Method 1: Real XLSX file using SheetJS (most powerful)
+// Helper - format number with 2 decimals
 // ────────────────────────────────────────────────
-function downloadAsXLSX() {
-  try {
-    const table = document.getElementById('dataTable');
-    const ws = XLSX.utils.table_to_sheet(table);
-    
-    // Optional: add some formatting / extra sheets
-    ws['!cols'] = [
-      {wch: 10}, {wch: 12}, {wch: 12}, {wch: 12}, {wch: 10}, {wch: 12}
-    ];
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Sales 2025");
-    
-    // You can add more sheets if needed
-    // XLSX.utils.book_append_sheet(wb, anotherWs, "Summary");
-
-    XLSX.writeFile(wb, "Sales_Report_2025.xlsx");
-    showStatus("✅ XLSX file downloaded!", "success");
-  } catch (err) {
-    showStatus("Error creating XLSX: " + err.message, "error");
-  }
+function formatNum(n) {
+  return Number(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
 // ────────────────────────────────────────────────
-// Method 2: Copy HTML table → Ctrl+V in Excel
+// 1. Generate sample data (like filling data in Excel)
 // ────────────────────────────────────────────────
-function copyTableToClipboard() {
-  const table = document.getElementById('dataTable');
-  const range = document.createRange();
-  range.selectNode(table);
-  
-  const sel = window.getSelection();
-  sel.removeAllRanges();
-  sel.addRange(range);
-  
-  try {
-    document.execCommand('copy');
-    showStatus("✅ Table copied! Paste (Ctrl+V) into Excel", "success");
-  } catch (err) {
-    showStatus("Copy failed. Try method 3 (TSV)", "warning");
-  }
-  
-  sel.removeAllRanges();
+function generateSampleData() {
+  const products = [
+    ["Laptop Pro", 8, 1249.99],
+    ["Wireless Mouse", 45, 24.50],
+    ["USB-C Hub", 19, 38.90],
+    ["27\" Monitor", 6, 289.00],
+    ["Mechanical Keyboard", 12, 89.95],
+    ["External SSD 1TB", 14, 109.00]
+  ];
+
+  const tbody = document.getElementById("tableBody");
+  tbody.innerHTML = "";
+
+  products.forEach(([name, qty, price]) => {
+    const total = qty * price;
+    const vat = total * 0.18;
+    const final = total + vat;
+
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${name}</td>
+      <td style="text-align:right">${qty}</td>
+      <td style="text-align:right">$${formatNum(price)}</td>
+      <td style="text-align:right">$${formatNum(total)}</td>
+      <td style="text-align:right">$${formatNum(vat)}</td>
+      <td style="text-align:right">$${formatNum(final)}</td>
+    `;
+    tbody.appendChild(row);
+  });
+
+  document.getElementById("result").innerHTML = "Sample sales data generated (6 rows)";
+  showCodeExample("generateSampleData");
 }
 
 // ────────────────────────────────────────────────
-// Method 3: Tab-separated values (very reliable)
+// 2. Calculate totals (like SUM, SUMIF in Excel)
 // ────────────────────────────────────────────────
-function copyTSV() {
-  const table = document.getElementById('dataTable');
-  let tsv = "";
+function calculateTotals() {
+  const rows = document.querySelectorAll("#tableBody tr");
+  if (rows.length === 0) {
+    alert("Please generate data first");
+    return;
+  }
+
+  let sumTotal = 0, sumVAT = 0, sumFinal = 0;
+
+  rows.forEach(row => {
+    const cells = row.cells;
+    const total  = parseFloat(cells[3].textContent.replace(/[,$]/g,"")) || 0;
+    const vat    = parseFloat(cells[4].textContent.replace(/[,$]/g,"")) || 0;
+    const final  = parseFloat(cells[5].textContent.replace(/[,$]/g,"")) || 0;
+
+    sumTotal += total;
+    sumVAT   += vat;
+    sumFinal += final;
+  });
+
+  document.getElementById("grandTotal").textContent = "$" + formatNum(sumTotal);
+  document.getElementById("grandVAT").textContent   = "$" + formatNum(sumVAT);
+  document.getElementById("grandFinal").textContent = "$" + formatNum(sumFinal);
+
+  document.getElementById("result").innerHTML = "Totals calculated successfully";
+  showCodeExample("calculateTotals");
+}
+
+// ────────────────────────────────────────────────
+// 3. Conditional formatting simulation
+// ────────────────────────────────────────────────
+function highlightAboveAverage() {
+  const rows = document.querySelectorAll("#tableBody tr");
+  if (rows.length === 0) return;
+
+  // Get all final amounts
+  const finals = Array.from(rows).map(row => 
+    parseFloat(row.cells[5].textContent.replace(/[,$]/g,"")) || 0
+  );
+
+  const avg = finals.reduce((a,b)=>a+b,0) / finals.length;
+
+  rows.forEach((row,i) => {
+    const val = finals[i];
+    row.style.background = val > avg ? "#e8f5e9" : "";
+    row.style.fontWeight = val > avg ? "600" : "normal";
+  });
+
+  document.getElementById("result").innerHTML = 
+    `Highlighted rows above average (avg = $${formatNum(avg)})`;
+  showCodeExample("highlightAboveAverage");
+}
+
+// ────────────────────────────────────────────────
+// 4. Export to CSV (very common automation task)
+// ────────────────────────────────────────────────
+function exportToCSV() {
+  const rows = [["Product","Quantity","Unit Price","Total","VAT 18%","Final Amount"]];
   
-  for (let row of table.rows) {
-    const cells = Array.from(row.cells).map(cell => 
-      `"${cell.innerText.replace(/"/g, '""')}"`
+  document.querySelectorAll("#dataTable tr").forEach(tr => {
+    const row = Array.from(tr.cells).map(td => 
+      `"${td.textContent.trim().replace(/"/g,'""')}"`
     );
-    tsv += cells.join("\t") + "\n";
-  }
+    rows.push(row);
+  });
+
+  const csv = rows.map(r => r.join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
   
-  navigator.clipboard.writeText(tsv.trim())
-    .then(() => showStatus("✅ TSV copied! Paste into Excel", "success"))
-    .catch(() => {
-      document.getElementById('output').value = tsv;
-      showStatus("Clipboard permission denied → content put in textarea", "warning");
-    });
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "sales_export_" + new Date().toISOString().slice(0,10) + ".csv";
+  link.click();
+  URL.revokeObjectURL(url);
+
+  document.getElementById("result").innerHTML = "CSV file downloaded";
 }
 
 // ────────────────────────────────────────────────
-// Helpers
-// ────────────────────────────────────────────────
-function showStatus(message, type = "info") {
-  const el = document.getElementById('status');
-  el.innerHTML = message;
-  el.style.background = 
-    type === "success" ? "#ecfccb" :
-    type === "error"   ? "#fee2e2" :
-    type === "warning" ? "#fef3c7" : "#f3f4f6";
+function clearTable() {
+  document.getElementById("tableBody").innerHTML = "";
+  document.getElementById("grandTotal").textContent = "—";
+  document.getElementById("grandVAT").textContent   = "—";
+  document.getElementById("grandFinal").textContent = "—";
+  document.getElementById("result").innerHTML = "Table cleared";
 }
 
-function clearAll() {
-  document.getElementById('output').value = "";
-  document.getElementById('status').innerHTML = "";
+// ────────────────────────────────────────────────
+// Show similar code you would write in Excel Office Scripts
+// ────────────────────────────────────────────────
+function showCodeExample(funcName) {
+  const examples = {
+    generateSampleData: `// Office Scripts / Excel JS API style
+async function main(workbook: ExcelScript.Workbook) {
+  let sheet = workbook.getActiveWorksheet();
+  let data = [
+    ["Laptop Pro", 8, 1249.99],
+    // ... more rows
+  ];
+  sheet.getRange("A2:C7").setValues(data);
+  sheet.getRange("D2:D7").setFormula("=B2*C2");
+  // ...`,
+    
+    calculateTotals: `// Office Scripts example
+let totalsRange = sheet.getRange("D2:D7");
+let sumTotal = totalsRange.getValues()
+  .reduce((sum, row) => sum + Number(row[0]), 0);
+sheet.getRange("D9").setValue(sumTotal);`,
+
+    highlightAboveAverage: `// Conditional formatting via script
+let values = sheet.getRange("F2:F7").getValues().flat();
+let avg = values.reduce((a,b)=>a+b)/values.length;
+sheet.getRange("A2:F7")
+  .getConditionalFormats()
+  .add(ExcelScript.ConditionalFormatType.cellValue)
+  .getCellValue().setFormat({
+    font: { bold: true },
+    fill: { color: "#e8f5e9" }
+  }).setRule({ formula: `F2>${avg}` });`
+  };
+
+  const codeArea = document.getElementById("codeOutput");
+  codeArea.value = examples[funcName] || "// Select an action to see similar Excel script code";
 }
 </script>
 
