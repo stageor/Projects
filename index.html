@@ -3,262 +3,176 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Excel Automation Demo (Web → Excel)</title>
+  <title>Excel Automation Demo (Browser → Excel)</title>
   <style>
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      margin: 30px;
-      background: #f8f9fa;
+      font-family: system-ui, sans-serif;
+      max-width: 900px;
+      margin: 30px auto;
+      padding: 0 20px;
+      line-height: 1.5;
     }
-    h1 { color: #2c3e50; }
-    .container {
-      max-width: 1100px;
-      margin: 0 auto;
-    }
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      margin: 20px 0;
-      background: white;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    th, td {
-      padding: 12px 15px;
-      border: 1px solid #ddd;
-      text-align: left;
-    }
-    th {
-      background: #3498db;
-      color: white;
-    }
-    tr:nth-child(even) { background: #f8f9fa; }
-    .controls {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin: 20px 0;
-    }
+    h1 { color: #1e40af; }
     button {
-      padding: 10px 18px;
-      font-size: 15px;
+      padding: 10px 20px;
+      margin: 8px 12px 8px 0;
+      font-size: 1rem;
       cursor: pointer;
       border: none;
       border-radius: 6px;
-      background: #2ecc71;
+      background: #1d4ed8;
       color: white;
     }
-    button:hover { filter: brightness(1.08); }
-    button.red { background: #e74c3c; }
-    button.purple { background: #9b59b6; }
-    input, select {
-      padding: 9px 12px;
-      border: 1px solid #ccc;
+    button:hover { background: #1e40af; }
+    button.danger  { background: #dc2626; }
+    button.danger:hover { background: #b91c1c; }
+    textarea {
+      width: 100%;
+      height: 180px;
+      font-family: 'Consolas', monospace;
+      padding: 12px;
+      border: 1px solid #d1d5db;
       border-radius: 6px;
-      font-size: 15px;
+      margin: 12px 0;
+    }
+    #status {
+      margin: 16px 0;
+      padding: 12px;
+      border-radius: 6px;
+      background: #f3f4f6;
+      min-height: 60px;
     }
   </style>
 </head>
 <body>
 
-<div class="container">
+<h1>Excel Automation from Browser (2024–2025 style)</h1>
 
-  <h1>Web Table → Excel Automation Demo</h1>
+<p>Choose one of the methods below:</p>
 
-  <div class="controls">
-    <button onclick="addRow()">+ Add Row</button>
-    <button onclick="deleteSelectedRows()" class="red">Delete Selected</button>
-    <button onclick="exportToExcel()" class="purple">Export to Excel (.xlsx)</button>
-    <button onclick="exportToCSV()">Export CSV</button>
-    <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none" onchange="importFromExcel(event)">
-    <button onclick="document.getElementById('fileInput').click()">Import Excel</button>
-  </div>
-
-  <table id="dataTable">
-    <thead>
-      <tr>
-        <th><input type="checkbox" id="selectAll" onclick="toggleSelectAll()"></th>
-        <th>Item</th>
-        <th>Quantity</th>
-        <th>Unit Price (₹)</th>
-        <th>Total (₹)</th>
-        <th>Category</th>
-      </tr>
-    </thead>
-    <tbody id="tableBody">
-      <!-- Rows will be added here -->
-    </tbody>
-    <tfoot>
-      <tr>
-        <td colspan="4" style="text-align:right"><strong>Grand Total:</strong></td>
-        <td id="grandTotal">₹0.00</td>
-        <td></td>
-      </tr>
-    </tfoot>
-  </table>
-
+<div>
+  <button onclick="downloadAsXLSX()">1. Download real .xlsx file (SheetJS)</button>
+  <button onclick="copyTableToClipboard()">2. Copy HTML table → paste in Excel</button>
+  <button onclick="copyTSV()">3. Copy tab-separated text (very reliable)</button>
+  <button class="danger" onclick="clearAll()">Clear</button>
 </div>
 
-<!-- SheetJS (xlsx) library - use latest version from CDN -->
+<h3>Sample Data Table</h3>
+
+<table id="dataTable" border="1" style="border-collapse: collapse; margin: 20px 0;">
+  <thead style="background:#eff6ff;">
+    <tr>
+      <th>Month</th>
+      <th>Sales</th>
+      <th>Target</th>
+      <th>Achieved %</th>
+      <th>Region</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Jan</td><td>184000</td><td>200000</td><td>92%</td><td>North</td><td>🟡 Almost</td></tr>
+    <tr><td>Feb</td><td>210500</td><td>195000</td><td>108%</td><td>North</td><td>🟢 Good</td></tr>
+    <tr><td>Mar</td><td>167800</td><td>220000</td><td>76%</td><td>South</td><td>🔴 Low</td></tr>
+    <tr><td>Apr</td><td>245000</td><td>230000</td><td>107%</td><td>West</td><td>🟢 Good</td></tr>
+    <tr><td>May</td><td>198000</td><td>210000</td><td>94%</td><td>East</td><td>🟡 Almost</td></tr>
+  </tbody>
+</table>
+
+<h3>Generated Output (for method 1 & 3)</h3>
+<textarea id="output" placeholder="Generated content will appear here..."></textarea>
+
+<div id="status"></div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <script>
 // ────────────────────────────────────────────────
-let rowIdCounter = 1;
-
-function addRow(item = "", qty = 1, price = 0, category = "General") {
-  const tbody = document.getElementById("tableBody");
-  const row = document.createElement("tr");
-  row.innerHTML = `
-    <td><input type="checkbox" class="rowCheck"></td>
-    <td contenteditable="true">${item}</td>
-    <td contenteditable="true" oninput="calculateRow(this)">${qty}</td>
-    <td contenteditable="true" oninput="calculateRow(this)">${price}</td>
-    <td class="rowTotal">₹${(qty * price).toFixed(2)}</td>
-    <td>
-      <select onchange="calculateRow(this)">
-        <option ${category==='General'?'selected':''}>General</option>
-        <option ${category==='Electronics'?'selected':''}>Electronics</option>
-        <option ${category==='Stationery'?'selected':''}>Stationery</option>
-        <option ${category==='Grocery'?'selected':''}>Grocery</option>
-        <option ${category==='Other'?'selected':''}>Other</option>
-      </select>
-    </td>
-  `;
-  row.dataset.id = rowIdCounter++;
-  tbody.appendChild(row);
-  updateGrandTotal();
-}
-
-function calculateRow(element) {
-  const row = element.closest("tr");
-  if (!row) return;
-
-  const qty   = parseFloat(row.cells[2].textContent) || 0;
-  const price = parseFloat(row.cells[3].textContent) || 0;
-  const total = qty * price;
-
-  row.cells[4].textContent = "₹" + total.toFixed(2);
-  updateGrandTotal();
-}
-
-function updateGrandTotal() {
-  let sum = 0;
-  document.querySelectorAll(".rowTotal").forEach(cell => {
-    sum += parseFloat(cell.textContent.replace("₹","")) || 0;
-  });
-  document.getElementById("grandTotal").textContent = "₹" + sum.toFixed(2);
-}
-
-function toggleSelectAll() {
-  const checked = document.getElementById("selectAll").checked;
-  document.querySelectorAll(".rowCheck").forEach(cb => cb.checked = checked);
-}
-
-function deleteSelectedRows() {
-  document.querySelectorAll(".rowCheck:checked").forEach(cb => {
-    cb.closest("tr").remove();
-  });
-  updateGrandTotal();
-}
-
-// ─── Export to real .xlsx ───────────────────────────────────────
-function exportToExcel() {
-  const wb = XLSX.utils.book_new();
-  const wsData = [];
-
-  // Header
-  wsData.push([
-    "Item", "Quantity", "Unit Price (₹)", "Total (₹)", "Category"
-  ]);
-
-  // Data rows
-  document.querySelectorAll("#tableBody tr").forEach(row => {
-    const cells = row.querySelectorAll("td:not(:first-child)");
-    const rowData = [
-      cells[0].textContent.trim(),
-      cells[1].textContent.trim(),
-      cells[2].textContent.trim(),
-      cells[3].textContent.replace("₹","").trim(),
-      cells[4].querySelector("select").value
-    ];
-    wsData.push(rowData);
-  });
-
-  const ws = XLSX.utils.aoa_to_sheet(wsData);
-  XLSX.utils.book_append_sheet(wb, ws, "Invoice");
-
-  // Auto-size columns (nice to have)
-  ws['!cols'] = [
-    { wch: 30 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 15 }
-  ];
-
-  XLSX.writeFile(wb, "web-invoice-" + new Date().toISOString().slice(0,10) + ".xlsx");
-}
-
-// ─── Simple CSV export (no library needed) ───────────────────────
-function exportToCSV() {
-  let csv = "Item,Quantity,Unit Price (₹),Total (₹),Category\n";
-  
-  document.querySelectorAll("#tableBody tr").forEach(row => {
-    const cells = row.querySelectorAll("td:not(:first-child)");
-    const values = [
-      `"${cells[0].textContent.trim().replace(/"/g,'""')}"`,
-      cells[1].textContent.trim(),
-      cells[2].textContent.trim(),
-      cells[3].textContent.replace("₹","").trim(),
-      `"${cells[4].querySelector("select").value}"`
-    ];
-    csv += values.join(",") + "\n";
-  });
-
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "data-export.csv";
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
-// ─── Basic Excel import (first sheet only) ──────────────────────
-function importFromExcel(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const data = new Uint8Array(e.target.result);
-    const workbook = XLSX.read(data, { type: 'array' });
-    const firstSheet = workbook.SheetNames[0];
-    const ws = workbook.Sheets[firstSheet];
+// Method 1: Real XLSX file using SheetJS (most powerful)
+// ────────────────────────────────────────────────
+function downloadAsXLSX() {
+  try {
+    const table = document.getElementById('dataTable');
+    const ws = XLSX.utils.table_to_sheet(table);
     
-    const json = XLSX.utils.sheet_to_json(ws, { header: 1 });
+    // Optional: add some formatting / extra sheets
+    ws['!cols'] = [
+      {wch: 10}, {wch: 12}, {wch: 12}, {wch: 12}, {wch: 10}, {wch: 12}
+    ];
 
-    // Clear current table
-    document.getElementById("tableBody").innerHTML = "";
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Sales 2025");
+    
+    // You can add more sheets if needed
+    // XLSX.utils.book_append_sheet(wb, anotherWs, "Summary");
 
-    // Skip header row (index 0)
-    for (let i = 1; i < json.length; i++) {
-      const row = json[i];
-      if (!row || row.length < 4) continue;
-      
-      addRow(
-        row[0] || "",
-        parseFloat(row[1]) || 1,
-        parseFloat(row[2]) || 0,
-        row[4] || "General"
-      );
-    }
-  };
-  reader.readAsArrayBuffer(file);
+    XLSX.writeFile(wb, "Sales_Report_2025.xlsx");
+    showStatus("✅ XLSX file downloaded!", "success");
+  } catch (err) {
+    showStatus("Error creating XLSX: " + err.message, "error");
+  }
 }
 
-// Add some sample data on load
-window.onload = function() {
-  addRow("Wireless Mouse", 2, 850, "Electronics");
-  addRow("A4 Notebook", 10, 45, "Stationery");
-  addRow("Organic Rice 5kg", 3, 420, "Grocery");
-};
+// ────────────────────────────────────────────────
+// Method 2: Copy HTML table → Ctrl+V in Excel
+// ────────────────────────────────────────────────
+function copyTableToClipboard() {
+  const table = document.getElementById('dataTable');
+  const range = document.createRange();
+  range.selectNode(table);
+  
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+  
+  try {
+    document.execCommand('copy');
+    showStatus("✅ Table copied! Paste (Ctrl+V) into Excel", "success");
+  } catch (err) {
+    showStatus("Copy failed. Try method 3 (TSV)", "warning");
+  }
+  
+  sel.removeAllRanges();
+}
+
+// ────────────────────────────────────────────────
+// Method 3: Tab-separated values (very reliable)
+// ────────────────────────────────────────────────
+function copyTSV() {
+  const table = document.getElementById('dataTable');
+  let tsv = "";
+  
+  for (let row of table.rows) {
+    const cells = Array.from(row.cells).map(cell => 
+      `"${cell.innerText.replace(/"/g, '""')}"`
+    );
+    tsv += cells.join("\t") + "\n";
+  }
+  
+  navigator.clipboard.writeText(tsv.trim())
+    .then(() => showStatus("✅ TSV copied! Paste into Excel", "success"))
+    .catch(() => {
+      document.getElementById('output').value = tsv;
+      showStatus("Clipboard permission denied → content put in textarea", "warning");
+    });
+}
+
+// ────────────────────────────────────────────────
+// Helpers
+// ────────────────────────────────────────────────
+function showStatus(message, type = "info") {
+  const el = document.getElementById('status');
+  el.innerHTML = message;
+  el.style.background = 
+    type === "success" ? "#ecfccb" :
+    type === "error"   ? "#fee2e2" :
+    type === "warning" ? "#fef3c7" : "#f3f4f6";
+}
+
+function clearAll() {
+  document.getElementById('output').value = "";
+  document.getElementById('status').innerHTML = "";
+}
 </script>
 
 </body>
