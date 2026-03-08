@@ -1,15 +1,38 @@
-import pandas as pd
+function main(workbook: ExcelScript.Workbook) {
+  // Get active worksheet
+  let sheet = workbook.getActiveWorksheet();
+  
+  // Clear old content (optional)
+  sheet.getUsedRange()?.clear(ExcelScript.ClearApplyTo.contents);
 
-# Read
-df = pd.read_excel("big_data.xlsx", sheet_name="RawData", engine="openpyxl")
+  // Write headers
+  let headers = sheet.getRange("A1:E1");
+  headers.setValues([["Date", "Product", "Qty", "Price", "Total"]]);
+  headers.getFormat().getFont().setBold(true);
+  headers.getFormat().getFill().setColor("#D9EAD3");  // light green
 
-# Most common transformations
-df = df[df['Status'] == 'Active']
-df['Margin %'] = (df['Selling Price'] - df['Cost Price']) / df['Selling Price'] * 100
-df['Margin %'] = df['Margin %'].round(1)
+  // Sample data rows
+  let data = [
+    ["2026-03-01", "Wireless Mouse", 15, 890, "=C2*D2"],
+    ["2026-03-02", "USB-C Hub", 8, 1799, "=C3*D3"],
+    ["2026-03-03", "Monitor Arm", 4, 3400, "=C4*D4"]
+  ];
 
-# Write (fastest method)
-with pd.ExcelWriter("Processed_Report.xlsx", engine='openpyxl') as writer:
-    df.to_excel(writer, sheet_name="Cleaned", index=False)
-    # You can add more sheets easily
-    df.groupby('Category').sum().to_excel(writer, sheet_name="Summary")
+  // Write data starting row 2
+  sheet.getRange("A2:E4").setValues(data);
+
+  // Format numbers & currency (Indian Rupee example)
+  sheet.getRange("C2:C4").setNumberFormat("#,##0");
+  sheet.getRange("D2:E4").setNumberFormat("[$$-en-IN]#,##0.00");
+
+  // Auto-fit columns
+  sheet.getUsedRange().getFormat().autofitColumns();
+
+  // Add total row
+  let lastRow = sheet.getUsedRange().getRowCount() + 1;
+  sheet.getCell(lastRow - 1, 4).setValue("Grand Total");
+  sheet.getCell(lastRow - 1, 4).getFormat().getFont().setBold(true);
+  sheet.getRange(`E${lastRow}`).setFormula(`=SUM(E2:E${lastRow-1})`);
+
+  console.log("Report formatted successfully!");
+}
