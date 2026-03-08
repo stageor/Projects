@@ -3,204 +3,263 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Excel-style Mini Automation</title>
+  <title>Excel Automation Demo (Web → Excel)</title>
   <style>
     body {
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      margin: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 30px;
       background: #f8f9fa;
     }
     h1 { color: #2c3e50; }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
     table {
       border-collapse: collapse;
+      width: 100%;
       margin: 20px 0;
       background: white;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
-    td, th {
-      border: 1px solid #d0d7e0;
-      padding: 8px 12px;
-      min-width: 90px;
+    th, td {
+      padding: 12px 15px;
+      border: 1px solid #ddd;
+      text-align: left;
     }
     th {
       background: #3498db;
       color: white;
-      font-weight: 500;
     }
-    input {
-      width: 100%;
-      box-sizing: border-box;
-      padding: 4px;
-      border: none;
-      font: inherit;
-    }
-    input:focus {
-      outline: 2px solid #3498db;
-    }
-    .formula-cell {
-      background: #f1f8ff;
-      font-family: 'Courier New', monospace;
-      color: #27ae60;
-    }
-    #summary {
-      margin-top: 30px;
-      padding: 16px;
-      background: #ecf0f1;
-      border-radius: 6px;
-      max-width: 600px;
+    tr:nth-child(even) { background: #f8f9fa; }
+    .controls {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin: 20px 0;
     }
     button {
-      padding: 8px 16px;
-      margin: 0 8px 12px 0;
+      padding: 10px 18px;
+      font-size: 15px;
+      cursor: pointer;
+      border: none;
+      border-radius: 6px;
       background: #2ecc71;
       color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
     }
-    button:hover { background: #27ae60; }
+    button:hover { filter: brightness(1.08); }
+    button.red { background: #e74c3c; }
+    button.purple { background: #9b59b6; }
+    input, select {
+      padding: 9px 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 15px;
+    }
   </style>
 </head>
 <body>
 
-<h1>Simple Excel-like Automation (Browser)</h1>
+<div class="container">
 
-<p style="color:#7f8c8d">
-  Change values in yellow cells → formulas & summary auto-update
-</p>
+  <h1>Web Table → Excel Automation Demo</h1>
 
-<table id="dataTable">
-  <thead>
-    <tr>
-      <th>Item</th>
-      <th>Quantity</th>
-      <th>Unit Price</th>
-      <th>Total</th>
-      <th>Discount %</th>
-      <th>Final Amount</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td><input type="text" value="Wireless Mouse" class="desc"></td>
-      <td><input type="number" value="4"  class="qty"></td>
-      <td><input type="number" value="850" step="10" class="price"></td>
-      <td class="formula-cell total"></td>
-      <td><input type="number" value="5" step="1" min="0" max="60" class="disc"></td>
-      <td class="formula-cell final"></td>
-    </tr>
-    <tr>
-      <td><input type="text" value="USB-C Hub" class="desc"></td>
-      <td><input type="number" value="2"  class="qty"></td>
-      <td><input type="number" value="1450" step="50" class="price"></td>
-      <td class="formula-cell total"></td>
-      <td><input type="number" value="10" step="1" min="0" max="60" class="disc"></td>
-      <td class="formula-cell final"></td>
-    </tr>
-    <tr>
-      <td><input type="text" value="27″ Monitor" class="desc"></td>
-      <td><input type="number" value="1"  class="qty"></td>
-      <td><input type="number" value="16800" step="100" class="price"></td>
-      <td class="formula-cell total"></td>
-      <td><input type="number" value="8" step="1" min="0" max="60" class="disc"></td>
-      <td class="formula-cell final"></td>
-    </tr>
-  </tbody>
-</table>
+  <div class="controls">
+    <button onclick="addRow()">+ Add Row</button>
+    <button onclick="deleteSelectedRows()" class="red">Delete Selected</button>
+    <button onclick="exportToExcel()" class="purple">Export to Excel (.xlsx)</button>
+    <button onclick="exportToCSV()">Export CSV</button>
+    <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none" onchange="importFromExcel(event)">
+    <button onclick="document.getElementById('fileInput').click()">Import Excel</button>
+  </div>
 
-<div>
-  <button onclick="addRow()">+ Add Row</button>
-  <button onclick="exportToCSV()">↓ Export CSV</button>
+  <table id="dataTable">
+    <thead>
+      <tr>
+        <th><input type="checkbox" id="selectAll" onclick="toggleSelectAll()"></th>
+        <th>Item</th>
+        <th>Quantity</th>
+        <th>Unit Price (₹)</th>
+        <th>Total (₹)</th>
+        <th>Category</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody">
+      <!-- Rows will be added here -->
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="4" style="text-align:right"><strong>Grand Total:</strong></td>
+        <td id="grandTotal">₹0.00</td>
+        <td></td>
+      </tr>
+    </tfoot>
+  </table>
+
 </div>
 
-<div id="summary">
-  <strong>Grand Total (after discount):</strong> <span id="grandTotal">—</span><br>
-  <strong>Number of items:</strong> <span id="itemCount">—</span>
-</div>
+<!-- SheetJS (xlsx) library - use latest version from CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <script>
 // ────────────────────────────────────────────────
-const table = document.getElementById('dataTable');
+let rowIdCounter = 1;
 
-function recalculate() {
-  let grand = 0;
-  let count = 0;
-
-  table.querySelectorAll('tbody tr').forEach(row => {
-    const qty   = Number(row.querySelector('.qty')?.value)   || 0;
-    const price = Number(row.querySelector('.price')?.value) || 0;
-    const disc  = Number(row.querySelector('.disc')?.value)  || 0;
-
-    const total = qty * price;
-    const final = total * (1 - disc/100);
-
-    row.querySelector('.total').textContent = total.toLocaleString('en-IN');
-    row.querySelector('.final').textContent = final.toLocaleString('en-IN', {minimumFractionDigits:2});
-
-    grand += final;
-    if (qty > 0) count++;
-  });
-
-  document.getElementById('grandTotal').textContent = 
-    "₹ " + grand.toLocaleString('en-IN', {minimumFractionDigits:2});
-  
-  document.getElementById('itemCount').textContent = count;
-}
-
-// Add new row
-function addRow() {
-  const row = table.tBodies[0].insertRow();
+function addRow(item = "", qty = 1, price = 0, category = "General") {
+  const tbody = document.getElementById("tableBody");
+  const row = document.createElement("tr");
   row.innerHTML = `
-    <td><input type="text" class="desc" placeholder="Item name"></td>
-    <td><input type="number" value="1" class="qty"></td>
-    <td><input type="number" value="0" step="10" class="price"></td>
-    <td class="formula-cell total"></td>
-    <td><input type="number" value="0" step="1" min="0" max="60" class="disc"></td>
-    <td class="formula-cell final"></td>
+    <td><input type="checkbox" class="rowCheck"></td>
+    <td contenteditable="true">${item}</td>
+    <td contenteditable="true" oninput="calculateRow(this)">${qty}</td>
+    <td contenteditable="true" oninput="calculateRow(this)">${price}</td>
+    <td class="rowTotal">₹${(qty * price).toFixed(2)}</td>
+    <td>
+      <select onchange="calculateRow(this)">
+        <option ${category==='General'?'selected':''}>General</option>
+        <option ${category==='Electronics'?'selected':''}>Electronics</option>
+        <option ${category==='Stationery'?'selected':''}>Stationery</option>
+        <option ${category==='Grocery'?'selected':''}>Grocery</option>
+        <option ${category==='Other'?'selected':''}>Other</option>
+      </select>
+    </td>
   `;
-  attachListenersToRow(row);
-  recalculate();
+  row.dataset.id = rowIdCounter++;
+  tbody.appendChild(row);
+  updateGrandTotal();
 }
 
-// Attach change listeners to inputs in a row
-function attachListenersToRow(row) {
-  row.querySelectorAll('input').forEach(inp => {
-    inp.addEventListener('input', recalculate);
+function calculateRow(element) {
+  const row = element.closest("tr");
+  if (!row) return;
+
+  const qty   = parseFloat(row.cells[2].textContent) || 0;
+  const price = parseFloat(row.cells[3].textContent) || 0;
+  const total = qty * price;
+
+  row.cells[4].textContent = "₹" + total.toFixed(2);
+  updateGrandTotal();
+}
+
+function updateGrandTotal() {
+  let sum = 0;
+  document.querySelectorAll(".rowTotal").forEach(cell => {
+    sum += parseFloat(cell.textContent.replace("₹","")) || 0;
   });
+  document.getElementById("grandTotal").textContent = "₹" + sum.toFixed(2);
 }
 
-// Export to CSV
+function toggleSelectAll() {
+  const checked = document.getElementById("selectAll").checked;
+  document.querySelectorAll(".rowCheck").forEach(cb => cb.checked = checked);
+}
+
+function deleteSelectedRows() {
+  document.querySelectorAll(".rowCheck:checked").forEach(cb => {
+    cb.closest("tr").remove();
+  });
+  updateGrandTotal();
+}
+
+// ─── Export to real .xlsx ───────────────────────────────────────
+function exportToExcel() {
+  const wb = XLSX.utils.book_new();
+  const wsData = [];
+
+  // Header
+  wsData.push([
+    "Item", "Quantity", "Unit Price (₹)", "Total (₹)", "Category"
+  ]);
+
+  // Data rows
+  document.querySelectorAll("#tableBody tr").forEach(row => {
+    const cells = row.querySelectorAll("td:not(:first-child)");
+    const rowData = [
+      cells[0].textContent.trim(),
+      cells[1].textContent.trim(),
+      cells[2].textContent.trim(),
+      cells[3].textContent.replace("₹","").trim(),
+      cells[4].querySelector("select").value
+    ];
+    wsData.push(rowData);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  XLSX.utils.book_append_sheet(wb, ws, "Invoice");
+
+  // Auto-size columns (nice to have)
+  ws['!cols'] = [
+    { wch: 30 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 15 }
+  ];
+
+  XLSX.writeFile(wb, "web-invoice-" + new Date().toISOString().slice(0,10) + ".xlsx");
+}
+
+// ─── Simple CSV export (no library needed) ───────────────────────
 function exportToCSV() {
-  const rows = [];
-  rows.push(['Item','Quantity','Unit Price','Total','Discount %','Final Amount']);
-
-  table.querySelectorAll('tbody tr').forEach(tr => {
-    const row = [];
-    row.push(tr.cells[0].querySelector('input').value);
-    row.push(tr.cells[1].querySelector('input').value);
-    row.push(tr.cells[2].querySelector('input').value);
-    row.push(tr.cells[3].textContent.replace(/,/g,''));
-    row.push(tr.cells[4].querySelector('input').value);
-    row.push(tr.cells[5].textContent.replace(/,/g,''));
-    rows.push(row);
+  let csv = "Item,Quantity,Unit Price (₹),Total (₹),Category\n";
+  
+  document.querySelectorAll("#tableBody tr").forEach(row => {
+    const cells = row.querySelectorAll("td:not(:first-child)");
+    const values = [
+      `"${cells[0].textContent.trim().replace(/"/g,'""')}"`,
+      cells[1].textContent.trim(),
+      cells[2].textContent.trim(),
+      cells[3].textContent.replace("₹","").trim(),
+      `"${cells[4].querySelector("select").value}"`
+    ];
+    csv += values.join(",") + "\n";
   });
 
-  const csv = rows.map(r => r.join(',')).join('\n');
-  const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
-  
-  const link = document.createElement('a');
+  const link = document.createElement("a");
   link.href = url;
-  link.download = 'invoice_data_' + new Date().toISOString().slice(0,10) + '.csv';
+  link.download = "data-export.csv";
   link.click();
   URL.revokeObjectURL(url);
 }
 
-// Initialize
-document.querySelectorAll('tbody tr').forEach(attachListenersToRow);
-table.addEventListener('input', recalculate); // safety net
-recalculate();
+// ─── Basic Excel import (first sheet only) ──────────────────────
+function importFromExcel(e) {
+  const file = e.target.files[0];
+  if (!file) return;
 
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, { type: 'array' });
+    const firstSheet = workbook.SheetNames[0];
+    const ws = workbook.Sheets[firstSheet];
+    
+    const json = XLSX.utils.sheet_to_json(ws, { header: 1 });
+
+    // Clear current table
+    document.getElementById("tableBody").innerHTML = "";
+
+    // Skip header row (index 0)
+    for (let i = 1; i < json.length; i++) {
+      const row = json[i];
+      if (!row || row.length < 4) continue;
+      
+      addRow(
+        row[0] || "",
+        parseFloat(row[1]) || 1,
+        parseFloat(row[2]) || 0,
+        row[4] || "General"
+      );
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// Add some sample data on load
+window.onload = function() {
+  addRow("Wireless Mouse", 2, 850, "Electronics");
+  addRow("A4 Notebook", 10, 45, "Stationery");
+  addRow("Organic Rice 5kg", 3, 420, "Grocery");
+};
 </script>
+
 </body>
 </html>
