@@ -2,6 +2,7 @@
 
 A lightweight, standalone HTML and JavaScript page that replicates common Excel automation tasks directly in the browser, with no installation needed.
 
+
 Great for:
 
 - Prototyping Excel-like behavior
