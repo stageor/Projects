@@ -1,6 +1,7 @@
 # Excel Automation Demo (Browser + JS)
 
-A simple, self-contained HTML + JavaScript page that simulates several common Excel automation tasks directly in the browser — no installation required.
+A lightweight, standalone HTML and JavaScript page that replicates common Excel automation tasks directly in the browser, with no installation needed.
+
 
 Great for:
 
