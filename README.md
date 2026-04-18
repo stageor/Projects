@@ -15,7 +15,7 @@ Great for:
 ## Features
 
 - Generate sample sales data
-- Calculate totals, VAT (18%), and grand totals
+- Calculate totals, VAT (18%), & grand totals
 - Highlight rows above average (conditional formatting simulation)
 - Export table to CSV file
 - Shows equivalent **Office Scripts / Excel JavaScript API** code snippets for each action
