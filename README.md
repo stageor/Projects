@@ -33,7 +33,7 @@ https://htmlpreview.github.io/?https://github.com/YOUR-USERNAME/YOUR-REPO/blob/m
 2. Open it in your browser
 3. Click the buttons in order:
 
-   1. Create Sample Sales Data  
+   1. Generate sample sales data
    2. Calculate Totals & VAT  
    3. Highlight Above Average  
    4. Export Table → CSV
