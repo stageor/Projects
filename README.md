@@ -9,8 +9,7 @@ Great for:
 - Quick demos before moving to real Excel automation (Office Scripts / Excel JS API / VBA)
 - Showing CSV export, calculations, conditional formatting logic
 
-![Demo screenshot](https://via.placeholder.com/800x450.png?text=Excel+Automation+Demo+Screenshot)  
-*(replace with real screenshot when you take one)*
+![Demo screenshot](https://via.placeholder.com/800x450.png?text=Excel+Automation+Demo+Screenshot)
 
 ## Features
 
