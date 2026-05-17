@@ -11,7 +11,7 @@ Great for:
 
 ![Demo screenshot](https://via.placeholder.com/800x450.png?text=Excel+Automation+Demo+Screenshot)
 
-## Features
+## Feature
 
 - Generate sample sales data
 - Calculate totals, VAT (18%), & grand totals
